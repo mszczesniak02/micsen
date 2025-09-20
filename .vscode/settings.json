@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "pins.h": "c",
+        "spi.h": "c",
+        "utils.h": "c",
+        "pakcet.h": "c",
+        "dht.h": "c",
+        "config.h": "c",
+        "stdbool.h": "c",
+        "freertosconfig.h": "c",
+        "freertos.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "task.h": "c",
+        "packet_types.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
+}
