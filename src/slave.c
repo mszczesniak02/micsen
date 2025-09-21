@@ -3,10 +3,12 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "config.h"
 #include "dht.h"
 #include "packet.h"
+#include "sta.h"
 #include "utils.h"
 
 #include "FreeRTOS.h"
@@ -64,6 +66,30 @@ void mic_read_task(void *arg) {
   }
 }
 
+uint8_t PACKET_DATA_BUFFER[PACKET_MAX_PAYLOAD_SIZE];
+uint8_t SPI_BUFFER[SPI_BUFFER_SIZE];
+
+int response_temp(void) {
+  memset((uint8_t *)PACKET_DATA_BUFFER, 0, PACKET_MAX_PAYLOAD_SIZE);
+  memset((uint8_t *)SPI_BUFFER, 0, SPI_BUFFER_SIZE);
+
+  packet_t packet_reader, packet_sender;
+  int bytes = packet_recv(&packet_reader, SPI_BUFFER, 4 + 1);
+
+  uint16_t temp_data_amount =
+      packet_reader.header.fields.payload_or_request_size;
+
+  // get temp data, later read for the demanded amount of measurements set in
+  // the header size
+  uint8_t raw_data[4] = {0};
+  dht_read_raw(raw_data);
+
+  header_t header_sender =
+      header_init(DIRECTION_SLAVE_MASTER, 1, RESPONSE_TEMPERATURE, 0, 4 + 4);
+  packet_sender = packet_init(header_sender, PACKET_DATA_BUFFER, 4 + 4);
+  return packet_send(packet_sender, SPI_BUFFER);
+}
+
 int main() {
 
   hardware_init(1);
@@ -81,15 +107,20 @@ int main() {
 
   sleep_ms(1000);
 
-  xTaskCreate(dht_read_task, "dht_read task", 256, (void *)(&data), 1,
-              &dht_read_handle);
+  // xTaskCreate(dht_read_task, "dht_read task", 256, (void *)(&data), 1,
+  //             &dht_read_handle);
 
-  xTaskCreate(mic_read_task, "mic_read task", 1024, (void *)1, 1,
-              &mic_read_handle);
+  // xTaskCreate(mic_read_task, "mic_read task", 1024, (void *)1, 1,
+  //             &mic_read_handle);
 
-  vTaskStartScheduler();
+  // vTaskStartScheduler();
 
   while (true) {
+    printf("Waiting for request\n");
+    if (response_temp()) {
+      printf("Packet received, response sent\n");
+    }
+    sleep_ms(5000);
 
     // printf("\nS:sending \n");
     // print_buffer(slave_write, BUFFER_SIZE);

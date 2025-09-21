@@ -3,6 +3,9 @@
 
 // PACKET CONFIG
 #define PACKET_MAX_PAYLOAD_SIZE 4096
+#define SPI_BUFFER_SIZE                                                        \
+  (PACKET_MAX_PAYLOAD_SIZE + 4) // 4 = 32bits / 8 for header
+
 #define BUFFER_SIZE 3
 
 // PIN CONFIG:

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "hardware/spi.h"
 #include "pico/stdlib.h"
 
 #include "config.h"
@@ -64,13 +65,12 @@ void header_set(header_t *header, uint32_t fields);
 
 header_t header_init(uint8_t direction, uint8_t is_response,
                      uint8_t packet_type, uint8_t multiple_packet_amount,
-                     uint16_t data);
+                     uint16_t data_size);
 
 void packet_set(packet_t *packet, uint8_t *buffer, size_t buffer_len,
                 uint32_t header);
 
-packet_t packet_init(header_t header, uint8_t *data, size_t length);
-
+packet_t packet_init(header_t header, uint8_t *buffer, size_t length);
 /**
  * @brief Deserializes a byte buffer into a packet_t structure.
  *
@@ -94,6 +94,6 @@ size_t packet_deserialize(packet_t *packet, uint8_t *buffer);
  */
 void packet_print(packet_t *packet, bool as_hex);
 
-int packet_send(packet_t packet, uint8_t *buffer);
+int packet_send(packet_t packet, uint8_t *send_buffer);
 
-int packet_recv(packet_t *packet, uint8_t *buffer, size_t length);
+int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length);

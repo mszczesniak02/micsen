@@ -13,10 +13,12 @@ pico_sdk_init()
 add_executable(
     ${PROJECT_NAME}_m
     ./src/master.c
-    ./src/spi.c
+     ./src/spi.c
     ./src/utils.c
+    ./src/sta.c
     ./src/packet.c
     ./src/dht.c
+    ./src/ky037.c
 )
 
 add_executable(
@@ -24,6 +26,7 @@ add_executable(
     ./src/slave.c
     ./src/spi.c
     ./src/utils.c
+    ./src/sta.c
     ./src/packet.c
     ./src/dht.c
     ./src/ky037.c

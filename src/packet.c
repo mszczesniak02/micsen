@@ -1,13 +1,5 @@
 #include "packet.h"
 
-header_t header_init(void) {
-  header_t h = {.fields.starting_sequence = 0b111,
-                .fields.remaining_packets = 0,
-                .fields.packet_direction = 0,
-                .fields.packet_type = 0,
-                .fields.payload_or_request_size = 0};
-  return h;
-}
 void header_set(header_t *header, uint32_t fields) { header->as_u32 = fields; }
 
 void packet_set(packet_t *packet, uint8_t *buffer, size_t buffer_len,
@@ -30,6 +22,7 @@ size_t packet_serialize(packet_t *packet, uint8_t *buffer) {
   for (size_t i = 0; i < packet->header.fields.payload_or_request_size; i++) {
     buffer[counter++] = packet->payload[i];
   }
+  buffer[counter++] = (uint8_t)('\0');
   return counter;
 }
 
@@ -71,36 +64,39 @@ void packet_print(packet_t *packet, bool as_hex) {
   }
 }
 
-int packet_send(packet_t packet, uint8_t *buffer) {
-  int bytes = (int)packet_serialize(&packet, buffer);
+int packet_send(packet_t packet, uint8_t *send_buffer) {
+
+  // if packet header payload size = 0, send empty packet
+
+  int bytes = (int)packet_serialize(&packet, send_buffer);
 
   switch (packet.header.fields.packet_direction) {
   case DIRECTION_STA_MASTER: // UART // czu to zadziała ? doczytać !
   case DIRECTION_MASTER_STA: // UART
-    sta_send(buffer, bytes);
+    sta_send(send_buffer, bytes);
     return bytes;
     break;
   case DIRECTION_MASTER_SLAVE: // SPI
   case DIRECTION_SLAVE_MASTER: // SPI
-    return spi_send(buffer, bytes);
+    return spi_send(send_buffer, bytes);
     break;
   default: /*INVALID PACKET DIRECTION*/
     break;
   };
 }
 
-int packet_recv(packet_t *packet, uint8_t *buffer, size_t length) {
+int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length) {
   int bytes = 0;
   switch (packet->header.fields.packet_direction) {
   case DIRECTION_STA_MASTER: // UART
   case DIRECTION_MASTER_STA: // UART
-    sta_recv(buffer, length);
-    return (int)packet_deserialize(packet, buffer);
+    sta_recv(recv_buffer, length);
+    return (int)packet_deserialize(packet, recv_buffer);
     break;
   case DIRECTION_MASTER_SLAVE: // SPI
   case DIRECTION_SLAVE_MASTER: // SPI
-    bytes = spi_recv(buffer, length);
-    return (int)packet_deserialize(packet, buffer);
+    bytes = spi_recv(recv_buffer, length);
+    return (int)packet_deserialize(packet, recv_buffer);
     break;
   default: /*INVALID PACKET DIRECTION*/
     break;

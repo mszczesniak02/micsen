@@ -18,6 +18,8 @@ void dht_pin_init(void);
 
 bool dht_read_data(dht_t *result);
 
+bool dht_read_raw(uint8_t *results);
+
 uint8_t dht_init(void);
 
 uint8_t dht_read_byte(void);

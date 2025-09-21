@@ -84,6 +84,24 @@ bool dht_read_data(dht_t *result) {
   return 0;
 }
 
+bool dht_read_raw(uint8_t *results) { // size of 4
+  uint8_t buf[5], i;
+  dht_rst();
+  if (dht_check() == 0) {
+    for (i = 0; i < 5; i++) {
+      buf[i] = dht_read_byte();
+    }
+    if ((buf[0] + buf[1] + buf[2] + buf[3]) == buf[4]) {
+      results[0] = buf[0];
+      results[1] = buf[1];
+      results[2] = buf[2];
+      results[3] = buf[3];
+      return 1;
+    }
+  }
+  return 0;
+}
+
 void dht_print(dht_t *data) {
   printf("T: %u.%u°C | H: %u.%u%%\n", data->t_int, data->t_dec, data->h_int,
          data->h_dec);
