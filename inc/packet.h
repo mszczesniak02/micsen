@@ -12,12 +12,22 @@
 #include "spi.h"
 #include "sta.h"
 
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)                                                   \
-  ((byte) & 0x80 ? '1' : '0'), ((byte) & 0x40 ? '1' : '0'),                    \
-      ((byte) & 0x20 ? '1' : '0'), ((byte) & 0x10 ? '1' : '0'),                \
-      ((byte) & 0x08 ? '1' : '0'), ((byte) & 0x04 ? '1' : '0'),                \
-      ((byte) & 0x02 ? '1' : '0'), ((byte) & 0x01 ? '1' : '0')
+/**
+ * @brief Defines the header for an SPI packet using a union.
+ *
+ * This union allows accessing the header data in two ways:
+ * 1. As a single 32-bit integer (as_u32) for easy transmission.
+ * 2. As a structured set of bit-fields (fields) for easy access to
+ * individual flags. The total size is 4 bytes.
+ */
+
+//   goal -> comunication in packets
+//   directions -> master <-> slave
+//                terminal <-> master
+//                4 bits
+// request & responce packet for master - slave,
+//                up to 4096 packets mic data, as fast as possible to send via
+//                BLE.
 
 typedef union {
   uint32_t as_u32;
@@ -77,18 +87,13 @@ size_t packet_serialize(packet_t *packet, uint8_t *buffer);
  */
 size_t packet_deserialize(packet_t *packet, uint8_t *buffer);
 
-void packet_print(packet_t *packet);
+/**
+ * @brief Print the packet
+ * @param packet packet to read.
+ * @param as_hex show the payload as hex, else -> print as chars.
+ */
+void packet_print(packet_t *packet, bool as_hex);
 
 int packet_send(packet_t packet, uint8_t *send_buffer);
 
-int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length,
-                bool is_spi);
-
-void header_print(header_t header);
-
-int header_send(header_t header, uint8_t *send_buffer);
-int header_recv(header_t *header, uint8_t *recv_buffer);
-
-int header_deserialize(header_t *header, uint8_t *buffer);
-
-int header_serialize(header_t header, uint8_t *buffer);
+int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length);

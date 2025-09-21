@@ -41,57 +41,27 @@ size_t packet_deserialize(packet_t *packet, uint8_t *buffer) {
   return counter;
 }
 
-void header_print(header_t header) {
-  printf("Header:%s:%s:%s\n", "-----PAYLOAD----", "typeDIRC", "mtpcsBIT");
-  printf("Header:" BYTE_TO_BINARY_PATTERN "" BYTE_TO_BINARY_PATTERN
-         ":" BYTE_TO_BINARY_PATTERN ":" BYTE_TO_BINARY_PATTERN "\n",
-         BYTE_TO_BINARY(header.as_u32 >> 24),
-         BYTE_TO_BINARY(header.as_u32 >> 16),
-         BYTE_TO_BINARY(header.as_u32 >> 8), BYTE_TO_BINARY(header.as_u32));
-}
+void packet_print(packet_t *packet, bool as_hex) {
+  printf("Header:start:rem_packets:direction:type:payload_size\n");
+  printf("Header:%x:%x:%x:%x:%x\n", packet->header.fields.starting_sequence,
+         packet->header.fields.remaining_packets,
+         packet->header.fields.packet_direction,
+         packet->header.fields.packet_type,
+         packet->header.fields.payload_or_request_size);
 
-void packet_print(packet_t *packet) {
-  header_print(packet->header);
   printf("Payload:\n");
-
-  for (size_t i = 0; i < packet->header.fields.payload_or_request_size; i++) {
-    if (i > 0 && i % 32 == 0) {
-      printf("\n");
+  if (as_hex) {
+    for (size_t i = 0; i < packet->header.fields.payload_or_request_size; i++) {
+      if (i > 0 && i % 16 == 0) {
+        printf("\n");
+      }
+      printf("%02x ", packet->payload[i]);
     }
-    printf("%02x ", packet->payload[i]);
+    printf("\n");
+  } else {
+    printf("%.*s\n", (int)packet->header.fields.payload_or_request_size,
+           packet->payload);
   }
-  printf("\n");
-}
-
-int header_serialize(header_t header, uint8_t *buffer) {
-  int counter = 0;
-  uint32_t header_val = header.as_u32;
-  buffer[counter++] = (uint8_t)(header_val & 0xFF);
-  buffer[counter++] = (uint8_t)((header_val >> 8) & 0xFF);
-  buffer[counter++] = (uint8_t)((header_val >> 16) & 0xFF);
-  buffer[counter++] = (uint8_t)((header_val >> 24) & 0xFF);
-  return counter;
-}
-
-int header_deserialize(header_t *header, uint8_t *buffer) {
-  int counter = 0;
-  header->as_u32 = (uint32_t)(buffer[counter]) |
-                   ((uint32_t)(buffer[counter + 1]) << 8) |
-                   ((uint32_t)(buffer[counter + 2]) << 16) |
-                   ((uint32_t)(buffer[counter + 3]) << 24);
-  counter += 4;
-  return counter;
-}
-
-int header_recv(header_t *header, uint8_t *recv_buffer) {
-  int recvd = spi_recv(recv_buffer, PACKET_HEADER_SIZE);
-  header_deserialize(header, recv_buffer);
-  return recvd;
-}
-
-int header_send(header_t header, uint8_t *send_buffer) {
-  header_serialize(header, send_buffer);
-  return spi_send(send_buffer, PACKET_HEADER_SIZE); // uint32_t
 }
 
 int packet_send(packet_t packet, uint8_t *send_buffer) {
@@ -115,16 +85,22 @@ int packet_send(packet_t packet, uint8_t *send_buffer) {
   };
 }
 
-int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length,
-                bool is_spi) {
+int packet_recv(packet_t *packet, uint8_t *recv_buffer, size_t length) {
   int bytes = 0;
-  if (is_spi) {
-    bytes = spi_recv(recv_buffer, length);
-    return (int)packet_deserialize(packet, recv_buffer);
-  } else { // UART
+  switch (packet->header.fields.packet_direction) {
+  case DIRECTION_STA_MASTER: // UART
+  case DIRECTION_MASTER_STA: // UART
     sta_recv(recv_buffer, length);
     return (int)packet_deserialize(packet, recv_buffer);
-  }
+    break;
+  case DIRECTION_MASTER_SLAVE: // SPI
+  case DIRECTION_SLAVE_MASTER: // SPI
+    bytes = spi_recv(recv_buffer, length);
+    return (int)packet_deserialize(packet, recv_buffer);
+    break;
+  default: /*INVALID PACKET DIRECTION*/
+    break;
+  };
 }
 
 header_t header_init(uint8_t direction, uint8_t is_response,
@@ -186,7 +162,7 @@ packet_t packet_init(header_t header, uint8_t *data, size_t length) {
   packet_t p;
   p.header = header;
 
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < 0; i++) {
     p.payload[i] = data[i];
   }
   return p;

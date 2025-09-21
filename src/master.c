@@ -24,31 +24,29 @@ uint8_t PACKET_DATA_BUFFER[PACKET_MAX_PAYLOAD_SIZE];
 
 uint8_t SPI_BUFFER[SPI_BUFFER_SIZE];
 
-// int request_temp(void) {
-//   memset((uint8_t *)PACKET_DATA_BUFFER, 0, PACKET_MAX_PAYLOAD_SIZE);
-//   memset((uint8_t *)SPI_BUFFER, 0, SPI_BUFFER_SIZE);
+int request_temp(void) {
+  memset((uint8_t *)PACKET_DATA_BUFFER, 0, PACKET_MAX_PAYLOAD_SIZE);
+  memset((uint8_t *)SPI_BUFFER, 0, SPI_BUFFER);
 
-//   dht_t temp_data = {0};
-//   uint16_t data_length = 1;
-//   header_t header = header_init(DIRECTION_MASTER_SLAVE, 0,
-//   REQUEST_TEMPERATURE,
-//                                 0, data_length);
+  dht_t temp_data = {0};
+  uint16_t data_length = 1;
+  header_t header = header_init(DIRECTION_MASTER_SLAVE, 0, REQUEST_TEMPERATURE,
+                                0, data_length);
 
-//   packet_t packet = packet_init(header, PACKET_DATA_BUFFER, data_length);
-//   return packet_send(packet, SPI_BUFFER);
-// }
+  packet_t packet = packet_init(header, PACKET_DATA_BUFFER, data_length);
+  return packet_send(packet, SPI_BUFFER);
+}
 
-// int receive_temp() {
-//   packet_t packet_recvd;
-//   int bytes = packet_recv(&packet_recvd, SPI_BUFFER, 4 + sizeof(dht_t),
-//   true); if (bytes > 0) {
-//     printf("Packet received:\n");
-//     packet_print(&packet_recvd, true);
-//   }
-//   return bytes;
-// }
-
-uint8_t HEADER_BUFFOR[PACKET_HEADER_SIZE] = {0};
+int receive_temp() {
+  packet_t packet_recvd;
+  int bytes = packet_recv(&packet_recvd, SPI_BUFFER, 4 + 4);
+  printf("Packet received:\n");
+  for (size_t i = 0; i < bytes; i++) {
+    printf("%02x ", packet_recvd.payload[i]);
+  }
+  printf("\t end.\n");
+  return bytes;
+}
 
 int main() {
 
@@ -66,24 +64,28 @@ int main() {
 
   dht_t data = {0};
 
-  header_t recv_header = {0}, send_header = {0};
-
-  send_header =
-      header_init(DIRECTION_MASTER_SLAVE, 0, REQUEST_TEMPERATURE, 0, 4096);
-
   while (true) {
 
-    printf("\nM:sending request header \n");
-    header_print(send_header);
-    header_send(send_header, HEADER_BUFFOR);
-    sleep_ms(2000);
-    printf("\nM:Waiting for response header\n");
-    if (header_recv(&recv_header, HEADER_BUFFOR)) {
-      printf("\nM:Received response header\n");
-      header_print(recv_header);
+    printf("\nM:sending REQUEST \n");
+
+    int bytes = request_temp();
+    printf("\nM:Waiting for response\n");
+
+    if (receive_temp()) {
+      printf("Packet received");
     }
 
     sleep_ms(5000);
+
+    // print_buffer(master_write, BUFFER_SIZE);
+
+    // spi_write_read_blocking(SPI_MASTER, master_write, master_read,
+    // BUFFER_SIZE);
+
+    // printf("\nM:reading \n");
+    // print_buffer(master_read, BUFFER_SIZE);
+
+    // sleep_ms(2500);
   }
 
   return 0;

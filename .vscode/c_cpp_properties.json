@@ -8,17 +8,13 @@
                 "${env:PICO_SDK_PATH}/**",
                 "/home/krzeslaav/sdk/FreeRTOS-Kernel/portable/ThirdParty/GCC/RP2040/include",
                 "/home/krzeslaav/sdk/pico-sdk/src",
-                "/home/krzeslaav/sdk/pico-sdk/src/host/hardware_sync/include",
-                "/home/krzeslaav/sdk/googletest/**"
+                "/home/krzeslaav/sdk/pico-sdk/src/host/hardware_sync/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-clang-x64",
-            "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
-            ]
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4

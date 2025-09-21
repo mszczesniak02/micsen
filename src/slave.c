@@ -66,37 +66,29 @@ void mic_read_task(void *arg) {
   }
 }
 
-// uint8_t PACKET_DATA_BUFFER[PACKET_MAX_PAYLOAD_SIZE];
-// uint8_t SPI_BUFFER[SPI_BUFFER_SIZE];
+uint8_t PACKET_DATA_BUFFER[PACKET_MAX_PAYLOAD_SIZE];
+uint8_t SPI_BUFFER[SPI_BUFFER_SIZE];
 
-// int response_temp(void) {
-//   memset((uint8_t *)PACKET_DATA_BUFFER, 0, PACKET_MAX_PAYLOAD_SIZE);
-//   memset((uint8_t *)SPI_BUFFER, 0, SPI_BUFFER_SIZE);
+int response_temp(void) {
+  memset((uint8_t *)PACKET_DATA_BUFFER, 0, PACKET_MAX_PAYLOAD_SIZE);
+  memset((uint8_t *)SPI_BUFFER, 0, SPI_BUFFER_SIZE);
 
-//   packet_t packet_reader, packet_sender;
-//   int bytes = packet_recv(&packet_reader, SPI_BUFFER, 4 + 1, true);
+  packet_t packet_reader, packet_sender;
+  int bytes = packet_recv(&packet_reader, SPI_BUFFER, 4 + 1);
 
-//   if (bytes <= 0) {
-//     return 0; // Nie ma żądania, wyjdź
-//   }
+  uint16_t temp_data_amount =
+      packet_reader.header.fields.payload_or_request_size;
 
-//   // Sprawdź, czy to faktycznie żądanie temperatury
-//   if (packet_reader.header.fields.packet_type == REQUEST_TEMPERATURE) {
-//     dht_t temp_data = {0};
-//     dht_read_data(&temp_data); // Użyj poprawnej funkcji
+  // get temp data, later read for the demanded amount of measurements set in
+  // the header size
+  uint8_t raw_data[4] = {0};
+  dht_read_raw(raw_data);
 
-//     // Skopiuj dane do bufora
-//     memcpy(PACKET_DATA_BUFFER, &temp_data, sizeof(dht_t));
-
-//     header_t header_sender = header_init(
-//         DIRECTION_SLAVE_MASTER, 1, RESPONSE_TEMPERATURE, 0, sizeof(dht_t));
-//     packet_sender =
-//         packet_init(header_sender, PACKET_DATA_BUFFER, sizeof(dht_t));
-//     return packet_send(packet_sender, SPI_BUFFER);
-//   }
-//   return 0;
-// }
-uint8_t HEADER_BUFFOR[PACKET_HEADER_SIZE] = {0};
+  header_t header_sender =
+      header_init(DIRECTION_SLAVE_MASTER, 1, RESPONSE_TEMPERATURE, 0, 4 + 4);
+  packet_sender = packet_init(header_sender, PACKET_DATA_BUFFER, 4 + 4);
+  return packet_send(packet_sender, SPI_BUFFER);
+}
 
 int main() {
 
@@ -123,22 +115,22 @@ int main() {
 
   // vTaskStartScheduler();
 
-  header_t recv_header = {0}, send_header = {0};
-
-  send_header =
-      header_init(DIRECTION_SLAVE_MASTER, 1, RESPONSE_TEMPERATURE, 0, 2048);
   while (true) {
-
-    printf("Waiting for request header\n");
-    if (header_recv(&recv_header, HEADER_BUFFOR)) {
-      printf("Received header request.\n");
-      header_print(recv_header);
-
-      printf("Sending response header \n");
-      header_send(send_header, HEADER_BUFFOR);
+    printf("Waiting for request\n");
+    if (response_temp()) {
+      printf("Packet received, response sent\n");
     }
-
     sleep_ms(5000);
+
+    // printf("\nS:sending \n");
+    // print_buffer(slave_write, BUFFER_SIZE);
+
+    // spi_write_read_blocking(SPI_SLAVE, slave_write, slave_read, BUFFER_SIZE);
+
+    // printf("\nS:reading \n");
+    // print_buffer(slave_read, BUFFER_SIZE);
+
+    // sleep_ms(2500);
   }
 
   return 0;
